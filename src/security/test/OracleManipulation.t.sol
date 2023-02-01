@@ -23,7 +23,7 @@ contract OracleManipulation_Test is Test {
   function setUp() public {
     string memory MAINNET_RPC_URL = vm.envString("mainnet");
     console.log("mainnet:", MAINNET_RPC_URL);
-    vm.createSelectFork(MAINNET_RPC_URL,16060405);
+    vm.createSelectFork(MAINNET_RPC_URL);
   }
 
   function testOracleManipulation() public {
