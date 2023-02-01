@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "../src/A31_ERC20.sol";
+import "../A31_ERC20.sol";
 
 contract TestERC20 is ERC20 {
   constructor() ERC20("Test Token", "TKN", 18) {
