@@ -12,8 +12,10 @@ contract Dos is Test {
     KingOfEther kingOfEther = new KingOfEther();
     address alice = vm.addr(1);
     address bob = vm.addr(2);
+    address edward = vm.addr(3);
     deal(alice, 1 ether);
     deal(bob, 2 ether);
+    deal(edward, 4 ether);
 
     vm.prank(alice);
     kingOfEther.claimThrone{value: 1 ether}();
@@ -37,10 +39,10 @@ contract Dos is Test {
     assertEq(bob.balance, 2 ether);// bob got 2 ethers back
     assertEq(address(kingOfEther).balance, 3 ether);
 
-    // after attacking, alice claimThrone will fail
-    vm.expectRevert("insufficient msg.value");
-    vm.prank(alice);
-    kingOfEther.claimThrone{value: 1 ether}();
+    // after attacking, claimThrone will fail, because attacker does have a receive or fallback method
+    vm.prank(edward);
+    vm.expectRevert("transfer ether failed");
+    kingOfEther.claimThrone{value: 4 ether}();
   }
 }
 
