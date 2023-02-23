@@ -50,6 +50,8 @@ contract NFTSwap is IERC721Receiver {
     if (msg.sender != order.owner) {
       revert NOT_OWNER();
     }
+//    delete orders[nftAddr][tokenId];
+    // save 110 gas
     order.owner = address(0);
     order.price = 0;
     IERC721(nftAddr).safeTransferFrom(address(this), msg.sender, tokenId);

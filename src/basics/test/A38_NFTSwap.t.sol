@@ -66,6 +66,10 @@ contract NFTSwap_Test is Test {
     emit Revoke(alice, address(testNFT), tokenId);
     nftSwap.revoke(address(testNFT), tokenId);
     vm.stopPrank();
+    (address owner, uint256 price) = nftSwap.orders(address(testNFT), tokenId);
+    assertEq(owner, address(0));
+    assertEq(price, 0);
+    assertEq(testNFT.ownerOf(tokenId), alice);
   }
 
   function testUpdate() public {
