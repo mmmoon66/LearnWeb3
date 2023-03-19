@@ -14,7 +14,7 @@ contract VestingWallet_Test is Test {
   function setUp() public {
     console2.log("setUp, timestamp:", block.timestamp);
     vestingWallet = new VestingWallet({
-    beneficiary : alice,
+    beneficiaryAddress : alice,
     startTimestamp : block.timestamp,
     durationSeconds : 365 days
     });
@@ -31,55 +31,41 @@ contract VestingWallet_Test is Test {
     console2.log("testReleaseERC20, timestamp:", block.timestamp);
     uint256 timestamp = block.timestamp;
 
-    vm.expectRevert("VestingWallet: sender not beneficiary");
-    vestingWallet.releaseERC20(address(token));
-
     vm.expectRevert("VestingWallet: releasable amount is zero");
-    vm.prank(alice);
-    vestingWallet.releaseERC20(address(token));
+    vestingWallet.release(address(token));
 
     vm.warp(timestamp + 1 days);
-    vm.prank(alice);
-    vestingWallet.releaseERC20(address(token));
+    vestingWallet.release(address(token));
     assertEq(token.balanceOf(alice), 1 ether);
     assertEq(token.balanceOf(address(vestingWallet)), 364 ether);
 
     vm.warp(timestamp + 365 days);
-    vm.prank(alice);
-    vestingWallet.releaseERC20(address(token));
+    vestingWallet.release(address(token));
     assertEq(token.balanceOf(alice), 365 ether);
     assertEq(token.balanceOf(address(vestingWallet)), 0);
 
     vm.expectRevert("VestingWallet: releasable amount is zero");
-    vm.prank(alice);
-    vestingWallet.releaseERC20(address(token));
+    vestingWallet.release(address(token));
   }
 
   function testReleaseEther() public {
     uint256 timestamp = block.timestamp;
 
-    vm.expectRevert("VestingWallet: sender not beneficiary");
-    vestingWallet.releaseEther();
-
     vm.expectRevert("VestingWallet: releasable amount is zero");
-    vm.prank(alice);
-    vestingWallet.releaseEther();
+    vestingWallet.release();
 
     vm.warp(timestamp + 100 days);
-    vm.prank(alice);
-    vestingWallet.releaseEther();
+    vestingWallet.release();
     assertEq(alice.balance, 100 ether);
     assertEq(address(vestingWallet).balance, 265 ether);
 
     vm.warp(timestamp + 365 days);
-    vm.prank(alice);
-    vestingWallet.releaseEther();
+    vestingWallet.release();
     assertEq(alice.balance, 365 ether);
     assertEq(address(vestingWallet).balance, 0);
 
     vm.expectRevert("VestingWallet: releasable amount is zero");
-    vm.prank(alice);
-    vestingWallet.releaseEther();
+    vestingWallet.release();
   }
 }
 
