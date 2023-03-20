@@ -7,24 +7,20 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 contract TokenTimelock {
   using SafeERC20 for IERC20;
 
-  event TokenLocked(address indexed beneficiary, address indexed token, uint256 unlockTimestamp);
-  event TokenUnlocked(address indexed benefiary, address indexed token, uint256 amount);
-
   address private immutable _beneficiary;
   address private immutable _token;
-  uint256 private immutable _unlockTimestamp;
+  uint256 private immutable _releaseTimestamp;
 
   constructor(
     address beneficiary_,
     address token_,
-    uint256 unlockTimestamp_
+    uint256 releaseTimestamp_
   ) {
     require(beneficiary_ != address(0), "TokenTimelock: beneficiary is zero address");
-    require(unlockTimestamp_ >= block.timestamp, "TokenTimelock: unlock timestamp is before current timestamp");
+    require(releaseTimestamp_ > block.timestamp, "TokenTimelock: release timestamp is before current timestamp");
     _beneficiary = beneficiary_;
     _token = token_;
-    _unlockTimestamp = unlockTimestamp_;
-    emit TokenLocked(beneficiary_, token_, unlockTimestamp_);
+    _releaseTimestamp = releaseTimestamp_;
   }
 
   function beneficiary() public view virtual returns (address) {
@@ -35,15 +31,14 @@ contract TokenTimelock {
     return IERC20(_token);
   }
 
-  function unlockTimestamp() public view virtual returns (uint256) {
-    return _unlockTimestamp;
+  function releaseTimestamp() public view virtual returns (uint256) {
+    return _releaseTimestamp;
   }
 
-  function release() public {
-    require(block.timestamp >= unlockTimestamp(), "TokenTimelock: not yet to unlock time");
+  function release() public virtual {
+    require(block.timestamp >= releaseTimestamp(), "TokenTimelock: not yet to release time");
     uint256 balance = token().balanceOf(address(this));
     require(balance > 0, "TokenTimelock: balance is zero");
-    emit TokenUnlocked(beneficiary(), address(token()), balance);
     token().safeTransfer(beneficiary(), balance);
   }
 }
