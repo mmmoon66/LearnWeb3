@@ -22,10 +22,16 @@ contract Bank {
     uint256 balance = _balances[msg.sender];
     require(balance > 0, "Bank: no balance");
     // vulnerable code
-    (bool success,) = msg.sender.call{value : balance}("");
-    require(success, "Bank: transfer ether failed");
+    //    (bool success,) = msg.sender.call{value : balance}("");
+    //    require(success, "Bank: transfer ether failed");
+    //    _balances[msg.sender] = 0;
+    //    emit Withdraw(msg.sender, balance);
+
+    // Checks - Effects - Interactions
     _balances[msg.sender] = 0;
     emit Withdraw(msg.sender, balance);
+    (bool success,) = msg.sender.call{value : balance}("");
+    require(success, "Bank: transfer ether failed");
   }
 }
 
