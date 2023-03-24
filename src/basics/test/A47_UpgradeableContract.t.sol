@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 library StorageSlot {
   struct AddressSlot {
@@ -15,15 +16,15 @@ library StorageSlot {
   }
 }
 
-library Address {
-  function isContract(address account) internal view returns (bool) {
-    return account.code.length > 0;
-  }
-
-  function functionDelegateCall(address target, bytes memory data) internal {
-    (bool success, bytes memory returnData) = target.delegatecall(data);
-  }
-}
+//library Address {
+//  function isContract(address account) internal view returns (bool) {
+//    return account.code.length > 0;
+//  }
+//
+//  function functionDelegateCall(address target, bytes memory data) internal {
+//    (bool success, bytes memory returnData) = target.delegatecall(data);
+//  }
+//}
 
 abstract contract Proxy {
   fallback() external payable virtual {
@@ -65,15 +66,17 @@ abstract contract Proxy {
 
 abstract contract ERC1967Upgrade {
   event ImplementationUpgraded(address indexed newImplementation);
+  event AdminChanged(address indexed oldAdmin, address indexed newAdmin);
 
   bytes32 private immutable _IMPLEMENTATION_SLOT = bytes32(uint256(keccak256(abi.encodePacked("eip1967.proxy.implementation"))) - 1);
+  bytes32 private immutable _ADMIN_SLOT = bytes32(uint256(keccak256(abi.encodePacked("eip1967.proxy.admin"))) - 1);
 
-  function _setImplementation(address implementation) internal virtual {
+  function _setImplementation(address implementation) private {
     require(Address.isContract(implementation), "ERC1967Upgrade: implementation is not a contract");
     StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = implementation;
   }
 
-  function _getImplementation() internal view virtual returns (address) {
+  function _getImplementation() internal view returns (address) {
     return StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value;
   }
 
@@ -88,6 +91,20 @@ abstract contract ERC1967Upgrade {
       Address.functionDelegateCall(newImplementation, data);
     }
   }
+
+  function _getAdmin() internal view returns (address) {
+    return StorageSlot.getAddressSlot(_ADMIN_SLOT).value;
+  }
+
+  function _setAdmin(address newAdmin) private {
+    require(newAdmin != address(0), "ERC1967Upgrade: new admin is zero address");
+    StorageSlot.getAddressSlot(_ADMIN_SLOT).value = newAdmin;
+  }
+
+  function _changeAdmin(address newAdmin) internal {
+    emit AdminChanged(_getAdmin(), newAdmin);
+    _setAdmin(newAdmin);
+  }
 }
 
 contract ERC1967Proxy is Proxy, ERC1967Upgrade {
@@ -98,21 +115,28 @@ contract ERC1967Proxy is Proxy, ERC1967Upgrade {
     _upgradeToAndCall(implementation, data, false);
   }
 
-  function _implementation() internal view override returns (address) {
+  function _implementation() internal view virtual override returns (address) {
     return ERC1967Upgrade._getImplementation();
   }
 
-  function upgradeTo(address newImplementation) external {
+  function upgradeTo(address newImplementation) external virtual {
     ERC1967Upgrade._upgradeTo(newImplementation);
   }
 
-  function upgradeToAndCall(address newImplementation, bytes memory data) external {
+  function upgradeToAndCall(address newImplementation, bytes memory data) external payable virtual {
     ERC1967Upgrade._upgradeToAndCall(newImplementation, data, false);
   }
 }
 
 contract SimpleStorageV1 {
+  event FallbackCalled(address indexed caller, bytes data);
+
   uint256 private _value;
+
+  fallback(bytes calldata data) external payable returns (bytes memory) {
+    emit FallbackCalled(msg.sender, data);
+    return data;
+  }
 
   function setValue(uint256 value) external {
     _value = value;
