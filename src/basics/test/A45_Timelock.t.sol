@@ -3,6 +3,20 @@ pragma solidity ^0.8.13;
 
 import {Timelock} from "../A45_Timelock.sol";
 import {Test} from "forge-std/Test.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
+contract TestToken is ERC20, Ownable {
+  event Mint(address indexed to, uint256 amount);
+
+  constructor() ERC20("Test Token", "TST") {
+  }
+
+  function mint(address to, uint256 amount) external onlyOwner {
+    ERC20._mint(to, amount);
+    emit Mint(to, amount);
+  }
+}
 
 contract Timelock_Test is Test {
 
@@ -51,5 +65,30 @@ contract Timelock_Test is Test {
     vm.warp(executeTime);
     timelock.executeTransaction(target, value, signature, data, executeTime);
     assertEq(timelock.admin(), alice);
+  }
+
+  function testMintByTimelock() public {
+    uint256 timestamp = block.timestamp;
+
+    TestToken token = new TestToken();
+    assertEq(token.owner(), address(this));
+
+    token.transferOwnership(address(timelock));
+    assertEq(token.owner(), address(timelock));
+
+    address target = address(token);
+    uint256 value = 0;
+    string memory signature = "mint(address,uint256)";
+    bytes memory data = abi.encode(alice, 1 ether);
+    uint256 executeTime = timestamp + 7 days;
+    timelock.queueTransaction(target, value, signature, data, executeTime);
+
+    vm.warp(executeTime - 1 days);
+    vm.expectRevert("Timelock: current time is before executeTime");
+    timelock.executeTransaction(target, value, signature, data, executeTime);
+
+    vm.warp(executeTime);
+    timelock.executeTransaction(target, value, signature, data, executeTime);
+    assertEq(token.balanceOf(alice), 1 ether);
   }
 }
